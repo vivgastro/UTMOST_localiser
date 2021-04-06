@@ -20,11 +20,18 @@ from scipy.optimize import curve_fit
 
 
 #test_psr_coords = ['19:35:47.83', '+16:16:39.98']
-test_psr_coords = ['16:44:49.281', '-45:59:09.5']
+#test_psr_coords = ['16:44:49.281', '-45:59:09.5']
+#test_psr_coords = ['17:05:37.7', '-54:00:00']   #VVk's pulsar
+#test_psr_coords = ['23:25:15.3', '-05:30:39']   #RRAT J2325
 #test_psr_coords = ['12:43:17.158', '-64:23:23.85']
 #test_psr_coords = ['18:14:41.26', '-06:18:01.7']
 #test_psr_coords = ['19:32:14.06', '+10:59:33.38']
 #test_psr_coords = ['05:34:31.973', '+22:00:52.06']
+#test_psr_coords = ['09:41:38', '-39:41:00']
+
+def read_test_source_coords(fname = "./test_source_coordinates_for_new_localiser.txt"):
+  d = np.loadtxt(fname, dtype=str)
+  return d
 
 utc_start_format = "%Y-%m-%d-%H:%M:%S"
 utc_format = "%Y-%m-%d-%H:%M:%S.%f"
@@ -260,7 +267,7 @@ def plot(pulse, ax, idx):
   #  fit = fit_around_DEC0(model, RA, DEC, DEC0)
   #  ax.plot(model(DEC, *fit)/15, DEC, 'k--' )
   
-  ax.fill_betweenx(DEC, RA_l_fit/15, RA_u_fit/15, color=cmap(0%cmap.N), alpha = 0.1, label='Tstamp:{0} FB:{1}'.format(pulse.tstamp, pulse.fb) )
+  ax.fill_betweenx(DEC, RA_l_fit/15, RA_u_fit/15, color=cmap(idx%cmap.N), alpha = 0.1, label='Tstamp:{0} FB:{1}'.format(pulse.tstamp, pulse.fb) )
   ax.plot(RA/15, DEC, '-', c = cmap(idx%cmap.N)  )
   ax.plot(RA_l/15, DEC_l, '--', c = cmap(idx%cmap.N) )
   ax.plot(RA_u/15, DEC_u, '--', c = cmap(idx%cmap.N) )
@@ -292,20 +299,46 @@ def plot_psr(ax):
   ax.plot(ra.hourangle, dec.deg, 'ro', label="Puslar J2000")
 
 
+def plot_test_sources(ax):
+  test_source_coords = read_test_source_coords()
+  
+  if len(test_source_coords.shape)==1:
+    test_source_coords = [test_source_coords]
+  for source in test_source_coords:
+    ra = Angle(source[0], unit=u.hourangle)
+    dec = Angle(source[1], unit=u.deg)
+    
+    err_ra = source[3]
+    err_dec = source[4]
+
+    if ":" in err_ra:
+      err_ra = Angle(err_ra, unit=u.hourangle)
+    else:
+      err_ra = Angle(err_ra, unit=u.deg) / np.cos(np.deg2rad(dec.deg))
+  
+    err_dec = Angle(err_dec, unit = u.deg)
+    
+    #ax.plot(ra.hourangle, dec.deg, 'o', label=source[2] + ' (J2000)')
+    ax.errorbar(ra.hourangle, dec.deg, yerr=err_dec.deg, xerr=err_ra.hourangle, fmt='o', label=source[2] + ' (J2000)')
+
 #@profile
 def main(args):
   #Read the pulses file in a numpy structured array
-  dtype = np.dtype([('utc_start', 'S19'), ('tstamp', np.float), ('fb', np.int16), ('error', np.float)])
+  dtype = np.dtype([('utc_start', 'S19'), ('tstamp', np.float), ('fb', np.float), ('error', np.float)])
   pulses = np.loadtxt(args.pfile, dtype=dtype)
-
+  
   fig = plt.figure()
   ax = fig.add_subplot(111)
-  for ii, pulse in enumerate(pulses):
+  
+  for ii, pulse in enumerate(np.atleast_1d(pulses)):
     plot(Pulse(pulse), ax, ii)
   
   #plot_test_psr(ax, pulses[0])
   #plot_test_psr_correcting_for_abberation(ax, pulses[0])
-  plot_psr(ax)
+  
+  #plot_psr(ax)
+  plot_test_sources(ax)
+
   plt.legend()
   plt.xlabel("RA")
   plt.ylabel("DEC")
