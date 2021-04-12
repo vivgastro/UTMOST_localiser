@@ -46,20 +46,13 @@ def read_obs_header(utc_start):
 
 def from_J2000_to_apparent(RA, DEC, utc):
   #RA and DEC need to be in degrees. Both can be arrays
-  print("A.1.1")
   coords = SkyCoord(RA, DEC, frame=FK5(equinox="J2000"))
-  print("A.1.2")
   time = Time(utc)
-  print("A.1.3")
   cirs = coords.transform_to(CIRS(obstime=time))
-  print("A.1.4")
 
   eo = eo06a(*get_jd12(time, 'tt')) * u.rad
-  print("A.1.5")
   correct_ra = (cirs.ra - eo)
-  print("A.1.6")
   correct_dec = cirs.dec
-  print("A.1.7")
   #correct_coords = ((cirs.ra - eo).value, cirs.dec.value)
   return correct_ra, correct_dec
   #return correct_coords.ra.deg, correct_coords.dec.deg
@@ -94,20 +87,14 @@ def get_MD_from_RA_DEC(RA, DEC, utc):
   MD:     MD of the source in radians (astropy.Angle object)
   '''
   
-  print("A.1")
   RA, DEC = from_J2000_to_apparent(RA, DEC, utc)
-  print("A.2")
   HA_rad = get_HA_rad(RA, DEC, utc)
-  print("A.3")
 
   #NS = Angle(pc.NS(HA_rad, DEC.rad), unit=u.rad)
   #MD = Angle(pc.MD(HA_rad, DEC.rad), unit=u.rad)
 
-  print("A.4")
   MD0_rad = pc.MD(0, DEC.rad)
-  print("A.5")
   MD_pulse_rad =  Angle(HA_rad - MD0_rad, unit=u.rad)
-  print("A.6")
   
   return  MD_pulse_rad
 
@@ -182,9 +169,7 @@ def get_fanbeam_from_coordinates(RA, DEC, utc_start=None, tcand=None, utc_cand=N
     RA = Angle(RA, unit=u.hourangle)
   if isinstance(DEC, str):
     DEC = Angle(DEC, unit=u.degree)
-  print("A")
   MD = get_MD_from_RA_DEC(RA, DEC, utc_cand)
-  print("B")
   delta_fb = MD.deg / fb_s
   
 
