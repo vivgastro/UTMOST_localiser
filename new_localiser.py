@@ -89,6 +89,29 @@ def getlst_pulse(toa):
   last_ha = Time(toa).sidereal_time(kind='apparent', longitude=mol_long).value
   return last_ha * 15   #to convert HA into degrees
 
+def hrs2hms(hrs):
+    hours = int(hrs)
+    frac = hrs - hours
+
+    min = int(frac*60)
+    sec = (frac*60 - min)*60
+    str_rep = "%02d:%02d:%05.2f" %(hours,min,sec)
+    return str_rep
+
+def deg2dms(dec):
+    sign = 1 if dec > 0 else -1
+    dec = np.abs(dec)
+    deg = int(dec)
+    frac = dec - deg
+
+    min = int(frac * 60)
+    sec = (frac*60 - min )*60
+
+    #str_rep = str(deg*sign)+":"+str(min)+":%.2f" %sec
+    str_rep = "%02d:%02d:%05.2f" %(deg*sign,min,sec)
+    return str_rep
+
+
 '''
 def radec_to_J2000(ra, dec, utc):
   eq = ephem.Equatorial(ra, dec, epoch = utc)
@@ -248,7 +271,7 @@ def plot(pulse, ax, idx):
   DEC0 = pulse.DEC0
   toa = pulse.toa
   MD = np.deg2rad(get_MD(pulse))
-  npoints = args.NS_ex * 1e2  #100 points per degree
+  npoints = args.NS_ex * args.npoints_per_degree  #100 points per degree
   NS = np.deg2rad(np.linspace(NS0 - args.NS_ex, NS0 + args.NS_ex, npoints))
   
   #RA, DEC, RA_l, RA_l_fit, DEC_l, RA_u, RA_u_fit, DEC_u = get_RA_DEC_limits(NS, MD, pulse)
@@ -268,6 +291,21 @@ def plot(pulse, ax, idx):
   #  ax.plot(model(DEC, *fit)/15, DEC, 'k--' )
   
   ax.fill_betweenx(DEC, RA_l_fit/15, RA_u_fit/15, color=cmap(idx%cmap.N), alpha = 0.1, label='Tstamp:{0} FB:{1}'.format(pulse.tstamp, pulse.fb) )
+  if args.show :
+    sys.stdout.write("---------------------------------\n")
+    sys.stdout.write("Best fit RA-DEC : {} {}\n\n".format(RA[len(RA)/2]/15, DEC[len(DEC)/2]))
+    sys.stdout.write("RA      DEC\n")
+    for ii in range(len(DEC)):
+      sys.stdout.write("{}  {}\n".format(RA[ii]/15, DEC[ii]))
+
+    sys.stdout.write("---------------------------------\n")
+    sys.stdout.write("Best fit RA-DEC : {} {}\n\n".format(hrs2hms(RA[len(RA)/2]/15), deg2dms(DEC[len(DEC)/2]) ))
+    sys.stdout.write("RA      DEC\n")
+    for ii in range(len(DEC)):
+      sys.stdout.write("{}  {}\n".format(hrs2hms(RA[ii]/15), deg2dms(DEC[ii])))
+
+
+
   ax.plot(RA/15, DEC, '-', c = cmap(idx%cmap.N)  )
   ax.plot(RA_l/15, DEC_l, '--', c = cmap(idx%cmap.N) )
   ax.plot(RA_u/15, DEC_u, '--', c = cmap(idx%cmap.N) )
@@ -350,6 +388,8 @@ if __name__ == '__main__':
   a.add_argument("pfile", type=str, help="Path to the file containing info about the  pulses")
   a.add_argument("-ut1", type=float, help="UT1 offset in seconds (def:Will be taken from obs.header)", default=None)
   a.add_argument("-NS_ex", type=float, help="North-South extent to which draw the loc arc on either side (def:20 deg)", default=20)
+  a.add_argument("-npoints_per_degree", type=float, help="Number of points per degree (def=100)", default=100)
+  a.add_argument("-show", action='store_true', help="Print out the best fit coords and the localisation arc", default=False)
 
   args= a.parse_args()
   main(args)
