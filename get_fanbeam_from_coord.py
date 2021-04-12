@@ -21,7 +21,7 @@ fmt_str = lambda(utc_str): utc_format if '.' in utc_str else utc_start_format
 fmt_obj = lambda(utc_obj): utc_format if '.' in utc_obj.isoformat() else utc_start_format
 
 OLD_RESULTS_PATH = "/data/mopsr/old_results"
-RESULTS_PATH = "/data/mopsr/resulsts"
+RESULTS_PATH = "/data/mopsr/results"
 
 def read_obs_header(utc_start):
   old_utc_path = os.path.join(OLD_RESULTS_PATH, utc_start)
