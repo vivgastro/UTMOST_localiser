@@ -105,8 +105,8 @@ def get_fanbeam_from_coordinates(RA, DEC, utc_start=None, tcand=None, utc_cand=N
   
   Input
   -----
-  RA:     RA of the source (astropy.Angle object)
-  DEC:    DEC of the source (astropy.Angle object)
+  RA:     RA of the source (astropy.Angle object -- can be a list or an array) or (str -- only one value)
+  DEC:    DEC of the source (astropy.Angle object -- can be a list or an array) or (str -- only one value)
 
   One of the following combinations:
 
