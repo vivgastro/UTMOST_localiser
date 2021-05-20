@@ -1,8 +1,11 @@
+#!/home/observer/miniconda2/bin/python
 
 import numpy as np
 from sigpyproc.Readers import FilReader as F
 import argparse, os, sys, glob
 from tqdm import tqdm
+from astropy.coordinates import Angle
+import astropy.units as u
 
 from get_fanbeam_from_coord import get_fanbeam_from_coordinates as G
 
@@ -23,8 +26,14 @@ def main():
   tt = np.arange(0, total_tobs, res)
 
   source_name = args.sname
-  source_ra = args.ra.strip()
-  source_dec = args.dec.strip()
+  source_ra = Angle(args.ra.strip(), unit=u.hourangle)
+  source_dec = Angle(args.dec.strip(), unit=u.deg)
+
+  source_ra_str = source_ra.to_string(sep=":")
+  source_dec_str = source_dec.to_string(sep=":")
+
+  source_ra_sigproc_fmt = float(source_ra.to_string(sep=""))
+  source_dec_sigproc_fmt = float(source_dec.to_string(sep=""))
 
   if args.load_track:
     print("Reading which beams the source would have been in during the observation from {}".format(args.load_track))
@@ -50,12 +59,12 @@ def main():
   nsamp = int(res / f.header.tsamp)
 
   update_hdr = {
-      'tstart': f.header.mjdAfterNsamps(start_samp),
-      'source_name': source_name,
-      'ra':         source_ra,
-      'dec':        source_dec
+      'tstart':           f.header.mjdAfterNsamps(start_samp),
+      'source_name':      source_name,
+      'src_raj':       source_ra_sigproc_fmt,
+      'src_dej':       source_dec_sigproc_fmt
       }
-  of = f.header.prepOutfile("{0}_{1}_{2}_{3}.fil".format(source_name, source_ra, source_dec, utc_start), updates=update_hdr)
+  of = f.header.prepOutfile("{0}_{1}_{2}_{3}.fil".format(source_name, source_ra_str, source_dec_str, utc_start), updates=update_hdr)
 
 
   for ii, tstep in enumerate(tqdm(source_times)):
@@ -67,8 +76,8 @@ def main():
 
     beam_frac = fbeam - lbeam
 
-    lbf = os.path.join(args.basedir + "BEAM_{0:03g}/{1}.fil".format(lbeam, utc_start))
-    rbf = os.path.join(args.basedir + "BEAM_{0:03g}/{1}.fil".format(rbeam, utc_start))
+    lbf = os.path.join(args.basedir, "BEAM_{0:03g}/{1}.fil".format(lbeam, utc_start))
+    rbf = os.path.join(args.basedir, "BEAM_{0:03g}/{1}.fil".format(rbeam, utc_start))
 
     lf, rf = None, None
     ld, rd = 0, 0
@@ -100,6 +109,7 @@ def main():
       od = rd
     else:
       print("Something went terribly wrong")
+      sys.exit(1)
 
     of.cwrite(od.T.ravel().astype(f.header.dtype, casting='unsafe'))
 
