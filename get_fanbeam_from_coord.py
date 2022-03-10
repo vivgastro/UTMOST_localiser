@@ -204,9 +204,7 @@ def get_fanbeam_from_coordinates(RA, DEC, utc_start=None, tcand=None, utc_cand=N
     MD_target = get_MD_from_RA_DEC(RA, DEC, utc_cand)
 
     delta_degrees = -1 *(MD_tracking_center - MD_target).deg
-    print("delta_degrees = ",delta_degrees)
     delta_fb = delta_degrees / fb_s
-    print("delta fb = ", delta_fb)
 
   else:
     MD = get_MD_from_RA_DEC(RA, DEC, utc_cand)
@@ -215,7 +213,6 @@ def get_fanbeam_from_coordinates(RA, DEC, utc_start=None, tcand=None, utc_cand=N
 
   #Now since HA and MD are positive towards east, while FB numbers decrease towards east, we subtract delta_FB from the central fanbeam
   fb = cfb - delta_fb
-  print("cfb = ", cfb, "fb = ", fb)
   
   return fb
 

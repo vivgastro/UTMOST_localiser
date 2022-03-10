@@ -51,7 +51,6 @@ def main():
       source_beams =  G(source_ra, source_dec, utc_start=utc_start, tcand=tt)
     mask = (2 <= source_beams) & (source_beams <= last_beam)
 
-    print(source_beams)
     source_beams = source_beams[mask]
     source_times = tt[mask]
 
