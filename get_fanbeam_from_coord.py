@@ -23,18 +23,29 @@ fmt_obj = lambda(utc_obj): utc_format if '.' in utc_obj.isoformat() else utc_sta
 OLD_RESULTS_PATH = "/data/mopsr/old_results"
 RESULTS_PATH = "/data/mopsr/results"
 
-def read_obs_header(utc_start):
-  old_utc_path = os.path.join(OLD_RESULTS_PATH, utc_start)
-  new_utc_path = os.path.join(RESULTS_PATH, utc_start)
-
-  if os.path.exists(old_utc_path):
-    utc_path = old_utc_path
-  elif os.path.exists(new_utc_path):
-    utc_path = new_utc_path
+def read_obs_header(utc_start = None, obs_header_file = None):
+  
+  if obs_header_file:
+    if os.path.exists(obs_header_file):
+      obs_header_path = obs_header_file
+    else:
+      raise RuntimeError("obs.header file - {0} does not exist".format(obs_header_file))
+  
   else:
-    raise RuntimeError("Could not find {0} in {1} or {2}".format(utc_start, RESULTS_PATH, OLD_RESULTS_PATH))
+    if utc_start is None:
+      raise RuntimeError("Need to specify either utc_start or obs_header_file")
 
-  obs_header_path = os.path.join(utc_path, "FB/obs.header")
+    old_utc_path = os.path.join(OLD_RESULTS_PATH, utc_start)
+    new_utc_path = os.path.join(RESULTS_PATH, utc_start)
+
+    if os.path.exists(old_utc_path):
+      utc_path = old_utc_path
+    elif os.path.exists(new_utc_path):
+      utc_path = new_utc_path
+    else:
+      raise RuntimeError("Could not find {0} in {1} or {2}".format(utc_start, RESULTS_PATH, OLD_RESULTS_PATH))
+
+    obs_header_path = os.path.join(utc_path, "FB/obs.header")
 
   if not os.path.exists(obs_header_path):
     raise RuntimeError("Could not find {}".format(obs_header_path))
@@ -99,7 +110,7 @@ def get_MD_from_RA_DEC(RA, DEC, utc):
   return  MD_pulse_rad
 
 
-def get_fanbeam_from_coordinates(RA, DEC, utc_start=None, tcand=None, utc_cand=None, fb_s = None, cfb = None):
+def get_fanbeam_from_coordinates(RA, DEC, utc_start=None, tcand=None, utc_cand=None, fb_s = None, cfb = None, obs_header_file = None):
   '''
   Computes the fanbeam location of a source at a given utc.
   
@@ -134,11 +145,16 @@ def get_fanbeam_from_coordinates(RA, DEC, utc_start=None, tcand=None, utc_cand=N
 
   Returns:
   --------
-  fb:     The fan-beam number of the 
+  fb:     The fan-beam number of the candidate
   '''
   
-  if utc_start:
-    obs_header = read_obs_header(utc_start)
+  obs_header = None
+  if obs_header_file:
+    obs_header = read_obs_header(obs_header_file = obs_header_file)
+
+  elif utc_start:
+    obs_header = read_obs_header(utc_start = utc_start)
+
 
   if utc_cand:
     utc_cand = DT.strptime(utc_cand, fmt_str(utc_cand))
@@ -156,25 +172,50 @@ def get_fanbeam_from_coordinates(RA, DEC, utc_start=None, tcand=None, utc_cand=N
     utc_cand = utc_start + tcand
   
   if fb_s is None:
-    if utc_start is None:
-      raise RuntimeError("Need to provide at least one of UTC_START or fb_s")
+    if obs_header is None:
+      raise RuntimeError("Need to provide at least one of UTC_START or obs_header_file or fb_s")
     fb_s =  obs_header.FB_BEAM_SPACING 
 
   if cfb is None:
-    if utc_start is None:
-      raise RuntimeError("Need to provide at least one of UTC_START or cfb")
+    if obs_header is None:
+      raise RuntimeError("Need to provide at least one of UTC_START or obs_header_file or cfb")
     cfb = int((obs_header.NBEAM + 1)/2) + 1
 
   if isinstance(RA, str):
     RA = Angle(RA, unit=u.hourangle)
   if isinstance(DEC, str):
     DEC = Angle(DEC, unit=u.degree)
-  MD = get_MD_from_RA_DEC(RA, DEC, utc_cand)
-  delta_fb = MD.deg / fb_s
+  
+  
+  if obs_header.DELAY_TRACKING:
+    '''
+    This peice of code will only work if the transiting center and the source are very nearby on sky
+    I do not take into account the precession of sources, which should be roughly the same for nearby sources
+    '''
+    cfb_tracking_RA = Angle(obs_header.RA, unit=u.hourangle)
+    cfb_tracking_DEC = Angle(obs_header.DEC, unit=u.degree)
+    
+    
+    #delta_RA = RA * np.cos(DEC.radian) - cfb_tracking_RA * np.cos(cfb_tracking_DEC.radian)
+    #delta_degrees = delta_RA.degree 
+    #delta_fb = delta_degrees / fb_s
+  
+    MD_tracking_center = get_MD_from_RA_DEC(cfb_tracking_RA, cfb_tracking_DEC, utc_cand)
+    MD_target = get_MD_from_RA_DEC(RA, DEC, utc_cand)
+
+    delta_degrees = -1 *(MD_tracking_center - MD_target).deg
+    print("delta_degrees = ",delta_degrees)
+    delta_fb = delta_degrees / fb_s
+    print("delta fb = ", delta_fb)
+
+  else:
+    MD = get_MD_from_RA_DEC(RA, DEC, utc_cand)
+    delta_fb = MD.deg / fb_s
   
 
   #Now since HA and MD are positive towards east, while FB numbers decrease towards east, we subtract delta_FB from the central fanbeam
   fb = cfb - delta_fb
+  print("cfb = ", cfb, "fb = ", fb)
   
   return fb
 
