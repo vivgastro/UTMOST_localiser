@@ -45,9 +45,13 @@ def main():
     res = int( ( source_times[1] - source_times[0] ) / f.header.tsamp ) * f.header.tsamp
   else:
     print("Getting which beams the source would have been in during the observation")
-    source_beams =  G(source_ra, source_dec, utc_start=utc_start, tcand=tt)
+    if args.obs_header_file:
+      source_beams = G(source_ra, source_dec, utc_start=utc_start, tcand=tt, obs_header_file = args.obs_header_file)
+    else:
+      source_beams =  G(source_ra, source_dec, utc_start=utc_start, tcand=tt)
     mask = (2 <= source_beams) & (source_beams <= last_beam)
 
+    print(source_beams)
     source_beams = source_beams[mask]
     source_times = tt[mask]
 
@@ -131,6 +135,7 @@ if __name__ == '__main__':
   a.add_argument("-dec", type=str, help="DEC of the source in DD:MM:SS.ff format", required=True)
   a.add_argument("-res", type=float, help="Time resolution (in seconds) at which to sample the fan-beams (def=0.1)", default=0.1)
   a.add_argument("-nbeams", type=int, help="Number of fanbeams in the observation (def=352)", default=352)
+  a.add_argument("-obs_header_file", type=str, help="Path to the obs_header_file (optional, can be used if the filterbanks are not on srv0)", required=False)
   a.add_argument("-load_track", type=str, help="Load the source track from a file instead of calculating -- takes the path to the track file as argument", default=None)
   a.add_argument("-save_track", action='store_true', help="Invoke this option if you would like to save the source track in a file on disk", default=False)
   args = a.parse_args()
