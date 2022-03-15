@@ -113,6 +113,9 @@ def main():
     else:
       print("Something went terribly wrong")
       sys.exit(1)
+    
+    max_val = 2**(np.dtype(f.header.dtype).itemsize*8) - 1
+    od[od > max_val] = max_val
 
     of.cwrite(od.T.ravel().astype(f.header.dtype, casting='unsafe'))
 
